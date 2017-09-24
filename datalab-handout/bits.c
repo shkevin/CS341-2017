@@ -220,7 +220,12 @@ int logicalShift(int x, int n) {
  *   Rating: 4
  */
 int bitParity(int x) {
-  return 2;
+  x = ( x >> 16 ) ^ x;
+  x = ( x >> 8 ) ^ x;
+  x = ( x >> 4 ) ^ x;
+  x = ( x >> 2 ) ^ x;
+  x = ( x >> 1) ^ x;
+  return (x & 1);
 }
 /* 
  * fitsBits - return 1 if x can be represented as an 
@@ -244,7 +249,8 @@ int fitsBits(int x, int n) {
  *   Rating: 1
  */
 int fitsShort(int x) {
-  return 2;
+  int shift =  + ~n;
+  return !(x ^ ((x << shift) >> shift));
 }
 /*
  * isTmin - returns 1 if x is the minimum, two's complement number,
@@ -285,7 +291,7 @@ int negate(int x) {
  *   Rating: 3
  */
 int isPositive(int x) {
-  return 2;
+  return !((1 << 31) & x) ^ !x;
 }
 /* 
  * subOK - Determine if can compute x-y without overflow
@@ -296,7 +302,11 @@ int isPositive(int x) {
  *   Rating: 3
  */
 int subOK(int x, int y) {
-  return 2;
+  int diff = x + (~y + 1);
+  int xShift = (x >> 31) & 1;
+  int yShift = (y >> 31) & 1;
+  int diffShift = (diff >> 31) & 1;
+  return !((!xShift & yShift & diffShift) | (xShift & !yShift & !diffShift));
 }
 /* 
  * float_abs - Return bit-level equivalent of absolute value of f for
@@ -310,7 +320,15 @@ int subOK(int x, int y) {
  *   Rating: 2
  */
 unsigned float_abs(unsigned uf) {
-  return 2;
+  unsigned mask = 0x7FFFFFFF;
+  unsigned NaNMin = 0x7F800001;
+  unsigned result = uf & mask;
+
+  if (res >= NaNMin)
+  {
+    return uf;
+  }
+  else return res;
 }
 /*
  * ezThreeFourths - multiplies by 3/4 rounding toward 0,
@@ -324,7 +342,9 @@ unsigned float_abs(unsigned uf) {
  *   Rating: 3
  */
 int ezThreeFourths(int x) {
-  return 2;
+  int threeX = x + x + x; 
+  int sign = threeX>>31;
+  return ((threeX>>2)&(~sign)) + (((threeX>>2)+1)&sign);
 }
 /*
  * trueThreeFourths - multiplies by 3/4 rounding toward 0,
@@ -338,5 +358,7 @@ int ezThreeFourths(int x) {
  */
 int trueThreeFourths(int x)
 {
-  return 2;
+  int tempInt = (x >> 1) + (x >> 2);
+  int fraction = ((((x & 1) << 1) + (x & 3)) & 7 );
+  return tempInt + ((fraction >> 2) & 1) + ((!!(fraction & 3)) & (tempInt >> 31));
 }
