@@ -339,9 +339,15 @@ unsigned float_abs(unsigned uf) {
  *   Rating: 3
  */
 int ezThreeFourths(int x) {
-  int bias = x + x + x;  
-  int signBias = bias >> 31;  
-  return ((bias >> 2) & (~signBias)) + (((bias >> 2) + 1) & signBias); 
+    int mask = (1 << 2) + ~0;
+    int sign = x >> 31;
+    int bias = mask & sign;
+    int oneFourth;
+
+    x = ((x << 1) +x);
+
+    oneFourth = ((x + bias) >> 2);
+    return oneFourth; 
 }
 /*
  * trueThreeFourths - multiplies by 3/4 rounding toward 0,
