@@ -306,7 +306,7 @@ int subOK(int x, int y) {
   int xShift = (x >> 31) & 1;
   int yShift = (y >> 31) & 1;
   int diffShift = (diff >> 31) & 1;
-  return !((!xShift & yShift & diffShift) | (xShift & !yShift & !diffShift));
+  return !(((!xShift) & (yShift) & (diffShift)) | (xShift & (!yShift) & (!diffShift)));
 }
 /* 
  * float_abs - Return bit-level equivalent of absolute value of f for
@@ -340,7 +340,7 @@ unsigned float_abs(unsigned uf) {
  */
 int ezThreeFourths(int x) {
   int bias = x + x + x;  
-  int signBias = z >> 31;  
+  int signBias = bias >> 31;  
   return ((bias >> 2) & (~signBias)) + (((bias >> 2) + 1) & signBias); 
 }
 /*
