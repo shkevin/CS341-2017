@@ -339,9 +339,7 @@ unsigned float_abs(unsigned uf) {
  *   Rating: 3
  */
 int ezThreeFourths(int x) {
-  int threeX = x + x + x; 
-  int sign = threeX>>31;
-  return ((threeX>>2)&(~sign)) + (((threeX>>2)+1)&sign);
+  x = (x >> 1) + ((x + 1) >> 2);
 }
 /*
  * trueThreeFourths - multiplies by 3/4 rounding toward 0,
