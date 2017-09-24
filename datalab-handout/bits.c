@@ -249,8 +249,8 @@ int fitsBits(int x, int n) {
  *   Rating: 1
  */
 int fitsShort(int x) {
-  int shift =  + ~n;
-  return !(x ^ ((x << shift) >> shift));
+  int shift = x << 16;
+  return !(x ^ ((shift) >> 16));
 }
 /*
  * isTmin - returns 1 if x is the minimum, two's complement number,
@@ -324,11 +324,8 @@ unsigned float_abs(unsigned uf) {
   unsigned NaNMin = 0x7F800001;
   unsigned result = uf & mask;
 
-  if (res >= NaNMin)
-  {
-    return uf;
-  }
-  else return res;
+  if (res >= NaNMin) return uf;
+  else return result;
 }
 /*
  * ezThreeFourths - multiplies by 3/4 rounding toward 0,
