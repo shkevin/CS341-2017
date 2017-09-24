@@ -340,6 +340,7 @@ unsigned float_abs(unsigned uf) {
  */
 int ezThreeFourths(int x) {
   x = (x >> 1) + ((x + 1) >> 2);
+  return x;
 }
 /*
  * trueThreeFourths - multiplies by 3/4 rounding toward 0,
