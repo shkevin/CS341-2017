@@ -183,7 +183,7 @@ int bitAnd(int x, int y) {
  *   Rating: 2
  */
 int getByte(int x, int n) {
-  return (x>>(n<<3))&0xFF;
+  return (x>>(n<<3)) & 0xFF;
 }
 /* 
  * isAsciiDigit - return 1 if 0x30 <= x <= 0x39 (ASCII codes for characters '0' to '9')
@@ -210,8 +210,7 @@ int isAsciiDigit(int x) {
  *   Rating: 3
  */
 int logicalShift(int x, int n) {
-  int paddedZeros = ~(1 << n) >> (n-1);
-  return paddedZeros & (x >> n);
+  return (~(((1 << 31) >> n) << 1) & (x >> n));
 }
 /*
  * bitParity - returns 1 if x contains an odd number of 0's
@@ -233,7 +232,8 @@ int bitParity(int x) {
  *   Rating: 2
  */
 int fitsBits(int x, int n) {
-  return 2;
+  int shift = 33 + ~n;
+  return !(x ^ ((x << shift) >> shift));
 }
 /* 
  * fitsShort - return 1 if x can be represented as a 
@@ -254,7 +254,7 @@ int fitsShort(int x) {
  *   Rating: 1
  */
 int isTmin(int x) {
-  return 2;
+  return (!((~x + 1) ^ x)) ^ !(x ^ 0);
 }
 /* 
  * leastBitPos - return a mask that marks the position of the
@@ -265,7 +265,7 @@ int isTmin(int x) {
  *   Rating: 2 
  */
 int leastBitPos(int x) {
-  return 2;
+  return (x & (~x+1));
 }
 /* 
  * negate - return -x 
@@ -275,7 +275,7 @@ int leastBitPos(int x) {
  *   Rating: 2
  */
 int negate(int x) {
-  return 2;
+  return ~x + 1;
 }
 /* 
  * isPositive - return 1 if x > 0, return 0 otherwise 
