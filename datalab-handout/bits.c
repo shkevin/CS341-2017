@@ -339,16 +339,9 @@ unsigned float_abs(unsigned uf) {
  *   Rating: 3
  */
 int ezThreeFourths(int x) {
-    int mask;
-    int whatSign;
-    int bias;
-    int divByFour;
-    x = ((x << 1) +x); //multiply by 3 and then use pwrof2
-    mask = (1 << 2) + ~0;
-    whatSign = x >> 31;
-    bias = mask&whatSign;
-    divByFour = ((x + bias) >> 2);
-    return divByFour;
+    int mask = (1 << 2) + ~0;
+    x = ((x << 1) +x); 
+    return ((x + (mask & (x >> 31))) >> 2);
 }
 /*
  * trueThreeFourths - multiplies by 3/4 rounding toward 0,
