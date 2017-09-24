@@ -324,7 +324,7 @@ unsigned float_abs(unsigned uf) {
   unsigned NaNMin = 0x7F800001;
   unsigned result = uf & mask;
 
-  if (res >= NaNMin) return uf;
+  if (result >= NaNMin) return uf;
   else return result;
 }
 /*
