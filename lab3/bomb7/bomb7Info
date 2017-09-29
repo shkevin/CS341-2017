@@ -1,0 +1,13 @@
+0000000000400f2d g     F .text	000000000000001c              phase_1
+
+000000000040163e g     F .text	0000000000000036              explode_bomb
+
+0000000000400f2d <phase_1>:
+  400f2d:	48 83 ec 08          	sub    $0x8,%rsp
+  400f31:	be ec 25 40 00       	mov    $0x4025ec,%esi
+  400f36:	e8 34 04 00 00       	callq  40136f <strings_not_equal>
+  400f3b:	85 c0                	test   %eax,%eax
+  400f3d:	74 05                	je     400f44 <phase_1+0x17>
+  400f3f:	e8 fa 06 00 00       	callq  40163e <explode_bomb>
+  400f44:	48 83 c4 08          	add    $0x8,%rsp
+  400f48:	c3                   	retq
