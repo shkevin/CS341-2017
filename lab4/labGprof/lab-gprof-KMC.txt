@@ -1,0 +1,44 @@
+ time   seconds   seconds    calls  ms/call  ms/call  name    
+ 55.85      0.15     0.15   214364     0.00     0.00  find_ele_rec
+ 15.41      0.19     0.04  2953309     0.00     0.00  Strlen
+
+The total runtime of the flat progra is = 14.649680 seconds
+
+These are the two functions that are taking the most time in the flat profile.
+Based off of the function names, I can assume that strelen is checking the literal
+length of the string, which would take O(n) time. You can also see how many times
+the functions are called, noting that find_ele_rec calls two other functions save_string, which is called 114421 times, and new_ele which is called 114421 times
+as well. It appears that find_elec_rec is a recursive function.
+
+The total runtime of dictionary-pg -quicksort 1 -n 2 -file moby.txt 
+is = 9.948735 seconds
+
+ time   seconds   seconds    calls   s/call   s/call  name    
+ 96.80      4.06     4.06   214364     0.00     0.00  find_ele_rec
+
+This time it appears that just find_ele_rec is taking most of the time. Which makes
+sense, since the quicksort flag is much faster compared to insertion sort 
+(O(logn) vs O(n^2)).
+
+
+The total runtime of dictionary-pg -quicksort 1 -lower 1 -n 2 -file moby.txt
+is = 10.546153 seconds
+
+ time   seconds   seconds    calls   s/call   s/call  name    
+ 96.14      4.09     4.09   214364     0.00     0.00  find_ele_rec
+
+It still appears that the optimization of -lower didn't help too much. Let's see 
+if we can speed it up with further flags.
+
+By using the -size "100" the total runtime is = 4.978980 seconds. This would make sense
+if the hashing function was inserting into buckets, creating longer search times.
+
+The -find [0,1,2] appears to only speed up the program by a little, compared to just
+the -lower optimization.
+
+The -hash functions seem to drastically speed up the program, total runtime of 
+-hash 1 is = 1.026597 seconds. runtime of -hash 2 is = 0.730837 seconds.
+
+The -n 0-20 parameter didn't appear to speed up the program to any significant degree.
+ 
+
