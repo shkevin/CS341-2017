@@ -1,0 +1,12 @@
+# started on Fri Nov 17 18:40:49 2017
+
+
+ Performance counter stats for './benchmark_naive':
+
+     9,172,682,869      L1-dcache-load-misses                                       
+         9,149,062      L1-dcache-store-misses                                      
+     3,678,341,646      LLC-loads                                                   
+         3,346,054      LLC-load-misses           #    0.09% of all LL-cache hits   
+
+      15.916986364 seconds time elapsed
+
