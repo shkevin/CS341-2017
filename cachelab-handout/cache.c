@@ -16,7 +16,7 @@ cache initCache(int E, int s, int b)
 	int setSize = newCache.S;
 	cacheBlock **temp;
 	
-	//initialize cacheBlock of size ExS
+	//initialize cacheBlock of size SxE
 	temp = malloc(setSize * sizeof(cacheBlock));
 	for (int i = 0; i < setSize; i++) {
 		temp[i] = malloc(E * sizeof(cacheBlock));
@@ -69,7 +69,60 @@ cache processData(cache cache, char operation, unsigned int address, int size)
 	unsigned int tag = address >> (cache.s + cache.b);
 	unsigned int tagBits = (64 - (cache.s + cache.b));    			//64 bit architecture
 	int setIndex = (address << tagBits) >> (tagBits + cache.b);
-	printf("size %d, %u, %d\n", 64-(cache.s + cache.b), tag, setIndex);
+	int setAssociativitySize = cache.E;
+	// printf("tagBits: %d, tag: %u, setIndex: %d\n",tagBits, tag, setIndex);
+
+	cacheBlock **temp = cache.block;
+	int atCapacity = 0;
+	int E = -1;
+
+	//Iterate the set associativity for the given set (based off of address)
+	for (int e = 0; e < setAssociativitySize; ++e)
+	{
+		//Check to see if the block is valid
+		if (temp[setIndex][e].valid == true)
+		{
+			//Checks the designated sets for matching tag
+			if (temp[setIndex][e].tag == tag)
+			{
+				//increment variable for least recently used
+				temp[setIndex][e].leastUsed++;
+				//increment hits, since cache contains tag
+				cache.hits++;
+				//cache was hit, update boolean for later use
+				cache.status.hit = true;
+			}
+		}
+
+		//Then process the data for misses
+		if (cache.status.hit) return cache;
+		else 
+		{
+			cache.status.miss = true;
+			cache.misses++;
+		}
+
+		atCapacity = checkCacheCapacity(temp, setIndex, setAssociativitySize);
+		E = evictSet(cache, setIndex);
+
+		//Then cache is full, so evict
+		if (atCapacity == -1)
+		{
+			cache.evictions++;
+			cache.status.eviction = true;
+			temp[setIndex][E].tag = tag;
+			temp[setIndex][E].leastUsed = 0;
+		}
+		else //process at empty spot 
+		{
+			temp[setIndex][atCapacity].tag = tag;
+			temp[setIndex][atCapacity].valid = true;
+			temp[setIndex][E].leastUsed = 1;
+		}
+	}
+
+	//update the cache memory based off of the operations performed
+	cache.block = temp;
 	return cache;
 }
 
@@ -78,10 +131,50 @@ cache processData(cache cache, char operation, unsigned int address, int size)
 * FUNCTION: 
 * RETURNS: Cache for simulation.
 ************************************************* */
-int checkCacheForData(cache cache, int tag, int setIndex)
+int evictSet(cache cache, int setIndex)
 {
-	//return the column where it is located
-	return 1;
+	int setAssociativitySize = cache.E;
+	int previousLeastUsed = -1;
+	int currentLeastUsed = -1;
+	int maxLeastUsed = -1;
+	cacheBlock **temp = cache.block;
+
+	//grab leastUsed in pairs to check
+	for (int e = 0; e < setAssociativitySize; e+=2)
+	{
+		previousLeastUsed = temp[setIndex][e].leastUsed;
+		currentLeastUsed = temp[setIndex][e+1].leastUsed;
+
+		if (previousLeastUsed < currentLeastUsed)
+		{
+			//store the set to evict
+			maxLeastUsed = e+1;
+		}
+
+	}
+	//evict the line with the highest leastUsed variable
+	return maxLeastUsed;
+}
+
+/* ************************************************
+* PARAMETERS: 
+* FUNCTION: 
+* RETURNS: index of free spot in cache.
+************************************************* */
+int checkCacheCapacity(cacheBlock **temp, int setIndex, int setAssociativitySize)
+{
+	int e = 0;
+	for (; e < setAssociativitySize; ++e)
+	{
+		//Check the sets in the E, to verify if full or not
+		if (!temp[setIndex][e].valid)
+		{
+			//this implies that there is an empty spot
+			return e;
+		}
+	}
+	//This implies the cache is full
+	return -1;
 }
 
 /* ************************************************
@@ -89,7 +182,38 @@ int checkCacheForData(cache cache, int tag, int setIndex)
 * FUNCTION: 
 * RETURNS: Cache for simulation.
 ************************************************* */
-cache evictLine(cache cache)
+cache resetStatus(cache cache)
 {
+	cacheStatus status = {false, false, false};
+	cache.status = status;
 	return cache;
+}
+
+/* ************************************************
+* PARAMETERS: operation given, address given, size 
+			  given, and updated status.
+* FUNCTION: Helper function used to print the trace
+			file file if -v flag is set. 
+* RETURNS: Cache for simulation.
+************************************************* */
+cache processStatus(char operation, unsigned int address, 
+	int size, cache cache)
+{
+	cacheStatus status = cache.status;
+
+	//Print relevant info for verbose flag
+	printf("%c %x,%d ", operation, address, size);
+	if (status.miss) printf("miss ");
+	if (status.hit)printf("hit ");
+	if (status.eviction) printf("eviction");		
+	printf("\n");
+
+	//Reset status for next operation
+	cache = resetStatus(cache);
+	return cache;
+}
+
+void freeCache(cache cache)
+{
+	
 }

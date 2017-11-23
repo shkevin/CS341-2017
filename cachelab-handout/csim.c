@@ -13,8 +13,6 @@
 */
 
 void printUsage();
-void processStatus(char operation, unsigned int address, 
-	int size, cacheStatus status);
 commands parseCMD(int argc, char *argv[]);
 cache parseFile(char* trace, bool vFlag, cache cache);
 
@@ -32,6 +30,7 @@ int main(int argc, char *argv[])
 
 	//Print hits, misses, and evictions for cache
 	printSummary(cacheSim.hits, cacheSim.misses, cacheSim.evictions);
+	freeCache(cacheSim);
 	return 0;
 }
 
@@ -109,40 +108,23 @@ cache parseFile(char* trace, bool vFlag, cache cache)
 			case 'L':
 				//load info
 				cache = processData(cache, operation, address, size);
-				if (vFlag) processStatus(operation, address, size, cache.status);
+				if (vFlag) cache = processStatus(operation, address, size, cache);
 				break;
 			case 'M':
 				//modify info
-
-				if (vFlag) processStatus(operation, address, size, cache.status);
+				cache = processData(cache, operation, address, size);
+				if (vFlag) cache = processStatus(operation, address, size, cache);
 				break;
 			case 'S':
 				//store info
-
-				if (vFlag) processStatus(operation, address, size, cache.status);
+				cache = processData(cache, operation, address, size);
+				if (vFlag) cache = processStatus(operation, address, size, cache);
 				break;
 			default:
 				break;
 		}
 	}
 	return cache;
-}
-
-/* ************************************************
-* PARAMETERS: operation given, address given, size 
-			  given, and updated status.
-* FUNCTION: Helper function used to print the trace
-			file file if -v flag is set. 
-* RETURNS: None.
-************************************************* */
-void processStatus(char operation, unsigned int address, 
-	int size, cacheStatus status)
-{
-	printf("%c %x,%d ", operation, address, size);
-	if (status.miss) printf("miss ");
-	if (status.hit)printf("hit ");
-	if (status.eviction) printf("eviction");		
-	printf("\n");
 }
 
 /* ************************************************

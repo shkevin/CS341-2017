@@ -28,7 +28,7 @@ typedef struct cacheBlock {
 ************************************************* */
 typedef struct cacheStatus
 {	
-	int miss, hit, eviction;
+	bool miss, hit, eviction;
 }cacheStatus;
 
 /* ************************************************
@@ -52,18 +52,36 @@ cache initCache(int E, int s, int b);
 cache computeSizes(cache cache, int E,int s,int b);
 
 /* ************************************************
-* Purpose: checks if cache has data availabe
-************************************************* */
-int checkCacheForData(cache cache, int tag, int setIndex);
-
-/* ************************************************
 * Purpose: Process the data for given operations
 ************************************************* */
-cache processData(cache cache, char operation, unsigned int address, int size);
+cache processData(cache cache, char operation, 
+	unsigned int address, int size);
 
 /* ************************************************
 * Purpose: Evicts line if least recently used/loads
 ************************************************* */
-cache evictLine(cache cache);
+int evictSet(cache cache, int setIndex);
+
+/* ************************************************
+* Purpose: Checks if cache is full before evicting
+************************************************* */
+int checkCacheCapacity(cacheBlock **temp, int setIndex, 
+	int setAssociativitySize);
+
+/* ************************************************
+* Purpose: Resets the status after each operation
+************************************************* */
+cache resetStatus(cache cache);
+
+/* ************************************************
+* Purpose: Prints status after each operation
+************************************************* */
+cache processStatus(char operation, unsigned int address, 
+	int size, cache cache);
+
+/* ************************************************
+* Purpose: Free's the memory for the cache
+************************************************* */
+void freeCache(cache cache);
 
 #endif
