@@ -7,15 +7,6 @@
 #include <stdio.h>
 
 /* ************************************************
-* Purpose: Stores the commands given to program 
-************************************************* */
-typedef struct commands {
-	int opt, s, E, b;
-	bool vFlag;
-	char *t;
-}commands;
-
-/* ************************************************
 * Purpose: Container to track LRU and if in cache
 ************************************************* */
 typedef struct cacheBlock {

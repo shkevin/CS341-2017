@@ -92,38 +92,30 @@ cache processData(cache cache, char operation, unsigned int address, int size)
 				//increment hits, since cache contains tag
 				cache.hits++;
 				//cache was hit, update for later use
-				cache.status.hit = true;
+				cache.status.hit++;
 			}
 		}
 
 		// printf("Prev: %d, cache: %d\n", previouslyHit, cache.hits);
 
 		//Then process the data for misses
-		if (previouslyHit == cache.hits)
+		if (previouslyHit != cache.hits) return cache;	
+		else 
 		{
 			cache.misses++;
-			cache.status.miss = false;
+			cache.status.miss++;
 		}
-		else return cache;
-		// else 
-		// {
-		// 	// cache.status.miss++;
-		// 	cache.misses++;
-		// }
 
 		atCapacity = checkCacheCapacity(temp, setIndex, setAssociativitySize);
 		E = evictSet(cache, setIndex);
 
-		// if (E == 0)
-		// {
-		// 	printf("This is impossible\n");
-		// }
+		// if (E == 0) printf("odd\n");
 
 		//Then cache is full, so evict
 		if (atCapacity == -1)
 		{
 			cache.evictions++;
-			// cache.status.eviction = true;
+			cache.status.eviction++;
 			temp[setIndex][E].tag = tag;
 			temp[setIndex][E].leastUsed = 0;
 		}
@@ -141,21 +133,23 @@ cache processData(cache cache, char operation, unsigned int address, int size)
 }
 
 /* ************************************************
-* PARAMETERS: 
-* FUNCTION: 
+* PARAMETERS: Cache for simulation, set index.
+* FUNCTION: Determines where in the set you can
+			evict from.
 * RETURNS: Cache for simulation.
 ************************************************* */
 int evictSet(cache cache, int setIndex)
 {
 	int setAssociativitySize = cache.E;
-	int previousLeastUsed = -1;
-	int currentLeastUsed = -1;
+	int previousLeastUsed = 0;
+	int currentLeastUsed = 0;
 	cacheBlock **temp = cache.block;
 	int maxLeastUsed = 0;
 
 
 	//grab leastUsed in pairs to check
-	for (int e = 0; e < setAssociativitySize; e+=2)
+	int e;
+	for (e = 0; e < setAssociativitySize; e+=2)
 	{
 		previousLeastUsed = temp[setIndex][e].leastUsed;
 		currentLeastUsed = temp[setIndex][e+1].leastUsed;
@@ -165,15 +159,27 @@ int evictSet(cache cache, int setIndex)
 			//store the set to evict
 			maxLeastUsed = e+1;
 		}
+	}	
 
+	//Finish looping in case of odd case
+	for (; e < setAssociativitySize; ++e)
+	{
+		currentLeastUsed = temp[setIndex][e].leastUsed;
+		if (currentLeastUsed > maxLeastUsed)
+		{
+			maxLeastUsed = e;
+		}
 	}
+
 	//evict the line with the highest leastUsed variable
 	return maxLeastUsed;
 }
 
 /* ************************************************
-* PARAMETERS: 
-* FUNCTION: 
+* PARAMETERS: cache memory, set index, set assoc.
+* FUNCTION: Determines if the cache is full, if 
+			it is not full then it returns the
+			open spots' index.
 * RETURNS: index of free spot in cache.
 ************************************************* */
 int checkCacheCapacity(cacheBlock **temp, int setIndex, int setAssociativitySize)
@@ -193,8 +199,8 @@ int checkCacheCapacity(cacheBlock **temp, int setIndex, int setAssociativitySize
 }
 
 /* ************************************************
-* PARAMETERS: 
-* FUNCTION: 
+* PARAMETERS: Cache for simulation.
+* FUNCTION: Resets the status for each operation
 * RETURNS: Cache for simulation.
 ************************************************* */
 cache resetStatus(cache cache)
@@ -218,21 +224,13 @@ cache processStatus(char operation, unsigned int address,
 
 	//Print relevant info for verbose flag
 	printf("%c %x,%d ", operation, address, size);
-	for (int i = 0; i < status.miss; ++i)
-	{
-		printf("miss ");
-	}
-	for (int i = 0; i < status.hit; ++i)
-	{
-		printf("hit ");
-	}
-	for (int i = 0; i < status.eviction; ++i)
-	{
-		printf("eviction");
-	}
-	// if (status.miss) printf("miss ");
-	// if (status.hit)printf("hit ");
-	// if (status.eviction) printf("eviction");		
+
+	//Loop through number of misses
+	for (int i = 0; i < status.miss; ++i) printf("miss ");
+	//Loop through number of hits
+	for (int i = 0; i < status.hit; ++i) printf("hit ");
+	//Loop through number of evictions
+	for (int i = 0; i < status.eviction; ++i) printf("eviction");		
 	printf("\n");
 
 	//Reset status for next operation
@@ -240,7 +238,19 @@ cache processStatus(char operation, unsigned int address,
 	return cache;
 }
 
+/* ************************************************
+* PARAMETERS: Cache for simulation.
+* FUNCTION: Free's the cache memory.
+* RETURNS: None.
+************************************************* */
 void freeCache(cache cache)
 {
-	
+	int numSets = cache.S;
+	cacheBlock **temp = cache.block;
+
+	for (int i = 0; i < numSets; ++i)
+	{
+		if (temp[i] != NULL) free(temp[i]);
+	}
+	if (temp != NULL) free(temp);
 }

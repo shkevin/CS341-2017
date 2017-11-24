@@ -8,9 +8,14 @@
 	netID: shkevin
 */
 
-/*
-	Usage:
-*/
+/* ************************************************
+* Purpose: Stores the commands given to program 
+************************************************* */
+typedef struct commands {
+	int opt, s, E, b;
+	bool vFlag;
+	char *t;
+}commands;
 
 void printUsage();
 commands parseCMD(int argc, char *argv[]);
@@ -51,7 +56,7 @@ commands parseCMD(int argc, char *argv[])
 				break;
 			case 'v':
 				//this isn't working for now
-				com.vFlag = false;
+				com.vFlag = true;
 				// printf("vFlag = %d\n", com.vFlag);
 				break;
 			case 's':
