@@ -129,33 +129,44 @@ cache processData(cache cache, char operation, memAddress address)
 ************************************************* */
 int evictSet(cacheBlock *temp, int setAssociativitySize)
 {
-	int previousLeastUsed = 0;
-	int currentLeastUsed = 0;
+	int previousLeastUsed = temp[0].leastUsed;
+	int nextLeastUsed = 0;
 	int maxLeastUsed = 0;
-
-	// grab leastUsed in pairs to check
 	int e;
+
+	//grab leastUsed in pairs to check
 	for (e = 0; e < setAssociativitySize-2; e+=2)
 	{
+		nextLeastUsed = temp[e+1].leastUsed;
 
-		previousLeastUsed = temp[e].leastUsed;
-		currentLeastUsed = temp[e+1].leastUsed;
-
-		if (previousLeastUsed < currentLeastUsed)
+		if (previousLeastUsed < nextLeastUsed)
 		{
 			//store the set to evict
 			maxLeastUsed = e+1;
+			previousLeastUsed = nextLeastUsed;
 		}
 	}	
 
 	//Finish looping for odd case
 	for (; e < setAssociativitySize; ++e)
 	{
-		// printf("e = %d\n", e);
-		previousLeastUsed = temp[e].leastUsed;
-		currentLeastUsed = temp[e].leastUsed;
-		if (previousLeastUsed < currentLeastUsed) maxLeastUsed = e+1;
+		nextLeastUsed = temp[e].leastUsed;
+		if (previousLeastUsed < nextLeastUsed)
+		{
+			maxLeastUsed = e;
+			previousLeastUsed = nextLeastUsed;	
+		} 
 	}
+
+	// int largest = temp[0].leastUsed;
+	// for (int e = 1; e < setAssociativitySize; ++e)
+	// {
+	// 	if (largest < temp[e].leastUsed)
+	// 	{
+	// 		maxLeastUsed = e;
+	// 		largest = temp[e].leastUsed;
+	// 	}
+	// }
 
 	//evict the line with the highest leastUsed variable
 	return maxLeastUsed;
