@@ -94,7 +94,7 @@ cache parseFile(char* trace, bool vFlag, cache cache)
 {
 	FILE *fp;
 	char operation;
-	unsigned int address;
+	memAddress address;
 	int size;
 
 	if ((fp = fopen(trace, "r")) == NULL)
@@ -103,7 +103,7 @@ cache parseFile(char* trace, bool vFlag, cache cache)
         exit(0);
 	}
 
-	while(fscanf(fp, "%c %10x,%d", &operation, &address, &size) != EOF)
+	while(fscanf(fp, "%c %llx,%d", &operation, &address, &size) != EOF)
 	{
 		switch (operation)
 		{
@@ -112,18 +112,18 @@ cache parseFile(char* trace, bool vFlag, cache cache)
 				break;
 			case 'L':
 				//load data
-				cache = processData(cache, operation, address, size);
+				cache = processData(cache, operation, address);
 				if (vFlag) cache = processStatus(operation, address, size, cache);
 				break;
 			case 'M':
 				//modify data
-				cache = processData(cache, operation, address, size);
-				cache = processData(cache, operation, address, size);
+				cache = processData(cache, operation, address);
+				cache = processData(cache, operation, address);
 				if (vFlag) cache = processStatus(operation, address, size, cache);
 				break;
 			case 'S':
 				//store data
-				cache = processData(cache, operation, address, size);
+				cache = processData(cache, operation, address);
 				if (vFlag) cache = processStatus(operation, address, size, cache);
 				break;
 			default:

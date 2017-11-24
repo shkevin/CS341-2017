@@ -58,101 +58,88 @@ cache computeSizes(cache cache, int E,int s,int b)
 
 /* ************************************************
 * PARAMETERS: Cache for simulation, operation given,
-			  address for operation, and size of
-			  bytes.
+			  address for operation.
 * FUNCTION: Process the data based off of the given
 			operation.
 * RETURNS: Cache for simulation.
 ************************************************* */
-cache processData(cache cache, char operation, unsigned int address, int size)
+cache processData(cache cache, char operation, memAddress address)
 {	
 	
-	unsigned int tagBits = (64 - (cache.s + cache.b));    			//64 bit architecture
-	unsigned int tag = address >> (cache.s + cache.b);
-	int setIndex = (address << tagBits) >> (tagBits + cache.b);
+	int tagBits = (64 - (cache.s + cache.b));    			//64 bit architecture
+	memAddress tag = address >> (cache.s + cache.b);
+	unsigned long long setIndex = (address << tagBits) >> (tagBits + cache.b);
 	int setAssociativitySize = cache.E;
-	int previouslyHit = cache.hits;
-	// printf("tagBits: %d, tag: %u, setIndex: %d\n",tagBits, tag, setIndex);
 
-	cacheBlock **temp = cache.block;
-	int atCapacity = 0;
+	cacheBlock *temp = cache.block[setIndex];
+	int emptyOrFull = 0;
 	int E = -1;
 
 	//Iterate the set associativity for the given set (based off of address)
-	for (int e = 0; e < setAssociativitySize; ++e)
+	for (int e = 0; e < setAssociativitySize; e++)
 	{
-		//Check to see if the block is valid
-		if (temp[setIndex][e].valid)
+		//Check to see if the block is valid and tag is matching
+		if ((temp[e].valid) && (temp[e].tag == tag))
 		{
-			//Checks the designated sets for matching tag
-			if (temp[setIndex][e].tag == tag)
-			{
-				//increment variable for least recently used
-				temp[setIndex][e].leastUsed++;
-				//increment hits, since cache contains tag
-				cache.hits++;
-				//cache was hit, update for later use
-				cache.status.hit++;
-			}
-		}
+			//increment variable for least recently used
+			temp[e].leastUsed++;
+			//increment hits, since cache contains tag
+			cache.hits++;
+			//cache was hit, update for later processing
+			cache.status.hit++;
 
-		// printf("Prev: %d, cache: %d\n", previouslyHit, cache.hits);
-
-		//Then process the data for misses
-		if (previouslyHit != cache.hits) return cache;	
-		else 
-		{
-			cache.misses++;
-			cache.status.miss++;
-		}
-
-		atCapacity = checkCacheCapacity(temp, setIndex, setAssociativitySize);
-		E = evictSet(cache, setIndex);
-
-		// if (E == 0) printf("odd\n");
-
-		//Then cache is full, so evict
-		if (atCapacity == -1)
-		{
-			cache.evictions++;
-			cache.status.eviction++;
-			temp[setIndex][E].tag = tag;
-			temp[setIndex][E].leastUsed = 0;
-		}
-		else //process at empty spot 
-		{
-			temp[setIndex][atCapacity].tag = tag;
-			temp[setIndex][atCapacity].valid = true;
-			temp[setIndex][E].leastUsed = 1;
+			cache.block[setIndex] = temp;
+			return cache;
 		}
 	}
 
+	//Then process the data for misses
+	cache.misses++;
+	cache.status.miss++;
+
+	//Get whether the cache is full, and which line has greatest LRU
+	emptyOrFull = checkCacheCapacity(temp, setAssociativitySize);
+	E = evictSet(temp, setAssociativitySize);
+
+	//Then cache is full, so evict
+	if (emptyOrFull == -1)
+	{
+		cache.evictions++;
+		cache.status.eviction++;		
+		temp[E].tag = tag;
+		temp[E].leastUsed = 0;
+	}
+	else //process at empty spot 
+	{
+		temp[emptyOrFull].tag = tag;
+		temp[emptyOrFull].valid = true;
+		temp[emptyOrFull].leastUsed = 0;
+	}
+
 	//update the cache memory based off of the operations performed
-	cache.block = temp;
+	cache.block[setIndex] = temp;
 	return cache;
 }
 
 /* ************************************************
-* PARAMETERS: Cache for simulation, set index.
+* PARAMETERS: Cache for simulation, set Assoc.
 * FUNCTION: Determines where in the set you can
-			evict from.
+			evict from. Uses 2x2 unrolling.
 * RETURNS: Cache for simulation.
 ************************************************* */
-int evictSet(cache cache, int setIndex)
+int evictSet(cacheBlock *temp, int setAssociativitySize)
 {
-	int setAssociativitySize = cache.E;
 	int previousLeastUsed = 0;
 	int currentLeastUsed = 0;
-	cacheBlock **temp = cache.block;
 	int maxLeastUsed = 0;
 
-
-	//grab leastUsed in pairs to check
+	// grab leastUsed in pairs to check
 	int e;
-	for (e = 0; e < setAssociativitySize; e+=2)
+	for (e = 0; e < setAssociativitySize-2; e+=2)
 	{
-		previousLeastUsed = temp[setIndex][e].leastUsed;
-		currentLeastUsed = temp[setIndex][e+1].leastUsed;
+
+		previousLeastUsed = temp[e].leastUsed;
+		currentLeastUsed = temp[e+1].leastUsed;
 
 		if (previousLeastUsed < currentLeastUsed)
 		{
@@ -161,14 +148,13 @@ int evictSet(cache cache, int setIndex)
 		}
 	}	
 
-	//Finish looping in case of odd case
+	//Finish looping for odd case
 	for (; e < setAssociativitySize; ++e)
 	{
-		currentLeastUsed = temp[setIndex][e].leastUsed;
-		if (currentLeastUsed > maxLeastUsed)
-		{
-			maxLeastUsed = e;
-		}
+		// printf("e = %d\n", e);
+		previousLeastUsed = temp[e].leastUsed;
+		currentLeastUsed = temp[e].leastUsed;
+		if (previousLeastUsed < currentLeastUsed) maxLeastUsed = e+1;
 	}
 
 	//evict the line with the highest leastUsed variable
@@ -176,19 +162,18 @@ int evictSet(cache cache, int setIndex)
 }
 
 /* ************************************************
-* PARAMETERS: cache memory, set index, set assoc.
+* PARAMETERS: cache memory, set assoc.
 * FUNCTION: Determines if the cache is full, if 
 			it is not full then it returns the
 			open spots' index.
 * RETURNS: index of free spot in cache.
 ************************************************* */
-int checkCacheCapacity(cacheBlock **temp, int setIndex, int setAssociativitySize)
+int checkCacheCapacity(cacheBlock *temp, int setAssociativitySize)
 {
-	int e = 0;
-	for (; e < setAssociativitySize; ++e)
+	for (int e = 0; e < setAssociativitySize; ++e)
 	{
 		//Check the sets in the E, to verify if full or not
-		if (!temp[setIndex][e].valid)
+		if (!temp[e].valid)
 		{
 			//this implies that there is an empty spot
 			return e;
@@ -217,20 +202,30 @@ cache resetStatus(cache cache)
 			file file if -v flag is set. 
 * RETURNS: Cache for simulation.
 ************************************************* */
-cache processStatus(char operation, unsigned int address, 
+cache processStatus(char operation, memAddress address, 
 	int size, cache cache)
 {
 	cacheStatus status = cache.status;
 
 	//Print relevant info for verbose flag
-	printf("%c %x,%d ", operation, address, size);
+	printf("%c %llx,%d ", operation, address, size);
 
 	//Loop through number of misses
-	for (int i = 0; i < status.miss; ++i) printf("miss ");
+	for (int i = 0; i < status.miss; ++i) 
+	{
+		printf("miss ");
+	}
+
 	//Loop through number of hits
-	for (int i = 0; i < status.hit; ++i) printf("hit ");
+	for (int i = 0; i < status.hit; ++i) 
+	{
+		printf("hit ");
+	}
 	//Loop through number of evictions
-	for (int i = 0; i < status.eviction; ++i) printf("eviction");		
+	for (int i = 0; i < status.eviction; ++i) 
+	{
+		printf("eviction");
+	}
 	printf("\n");
 
 	//Reset status for next operation
@@ -253,4 +248,5 @@ void freeCache(cache cache)
 		if (temp[i] != NULL) free(temp[i]);
 	}
 	if (temp != NULL) free(temp);
+	temp = NULL;
 }

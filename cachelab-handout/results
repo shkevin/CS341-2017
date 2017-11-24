@@ -4,7 +4,7 @@ shkevin@setebos:~/CS/cs341-fall17/cachelab-handout$ ./csim-ref -s 1 -E 1 -b 1 -t
 hits:9 misses:8 evictions:6
 
 shkevin@setebos:~/CS/cs341-fall17/cachelab-handout$ ./csim -s 4 -E 2 -b 4 -t traces/yi.trace
-hits:5 misses:9 evictions:5
+hits:4 misses:5 evictions:2
 shkevin@setebos:~/CS/cs341-fall17/cachelab-handout$ ./csim-ref -s 4 -E 2 -b 4 -t traces/yi.trace
 hits:4 misses:5 evictions:2
 
@@ -19,12 +19,12 @@ shkevin@setebos:~/CS/cs341-fall17/cachelab-handout$ ./csim-ref -s 2 -E 1 -b 3 -t
 hits:167 misses:71 evictions:67
 
 shkevin@setebos:~/CS/cs341-fall17/cachelab-handout$ ./csim -s 2 -E 2 -b 3 -t traces/trans.trace
-hits:171 misses:138 evictions:130
+hits:196 misses:42 evictions:34
 shkevin@setebos:~/CS/cs341-fall17/cachelab-handout$ ./csim-ref -s 2 -E 2 -b 3 -t traces/trans.trace
 hits:201 misses:37 evictions:29
 
 shkevin@setebos:~/CS/cs341-fall17/cachelab-handout$ ./csim -s 2 -E 4 -b 3 -t traces/trans.trace
-hits:178 misses:258 evictions:242
+hits:204 misses:34 evictions:18
 shkevin@setebos:~/CS/cs341-fall17/cachelab-handout$ ./csim-ref -s 2 -E 4 -b 3 -t traces/trans.trace
 hits:212 misses:26 evictions:10
 

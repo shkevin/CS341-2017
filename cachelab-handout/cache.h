@@ -6,11 +6,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+typedef unsigned long long memAddress;
+
 /* ************************************************
 * Purpose: Container to track LRU and if in cache
 ************************************************* */
 typedef struct cacheBlock {
-	int tag, leastUsed;
+	memAddress tag; 
+	int leastUsed;
 	bool valid;
 }cacheBlock;
 
@@ -46,17 +49,18 @@ cache computeSizes(cache cache, int E,int s,int b);
 * Purpose: Process the data for given operations
 ************************************************* */
 cache processData(cache cache, char operation, 
-	unsigned int address, int size);
+	memAddress address);
 
 /* ************************************************
 * Purpose: Evicts line if least recently used/loads
 ************************************************* */
-int evictSet(cache cache, int setIndex);
+int evictSet(cacheBlock *cacheLine, 
+	int setAssociativitySize);
 
 /* ************************************************
 * Purpose: Checks if cache is full before evicting
 ************************************************* */
-int checkCacheCapacity(cacheBlock **temp, int setIndex, 
+int checkCacheCapacity(cacheBlock *temp, 
 	int setAssociativitySize);
 
 /* ************************************************
@@ -67,7 +71,7 @@ cache resetStatus(cache cache);
 /* ************************************************
 * Purpose: Prints status after each operation
 ************************************************* */
-cache processStatus(char operation, unsigned int address, 
+cache processStatus(char operation, memAddress address, 
 	int size, cache cache);
 
 /* ************************************************
