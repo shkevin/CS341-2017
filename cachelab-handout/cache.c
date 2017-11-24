@@ -66,10 +66,12 @@ cache computeSizes(cache cache, int E,int s,int b)
 ************************************************* */
 cache processData(cache cache, char operation, unsigned int address, int size)
 {	
-	unsigned int tag = address >> (cache.s + cache.b);
+	
 	unsigned int tagBits = (64 - (cache.s + cache.b));    			//64 bit architecture
+	unsigned int tag = address >> (cache.s + cache.b);
 	int setIndex = (address << tagBits) >> (tagBits + cache.b);
 	int setAssociativitySize = cache.E;
+	int previouslyHit = cache.hits;
 	// printf("tagBits: %d, tag: %u, setIndex: %d\n",tagBits, tag, setIndex);
 
 	cacheBlock **temp = cache.block;
@@ -80,7 +82,7 @@ cache processData(cache cache, char operation, unsigned int address, int size)
 	for (int e = 0; e < setAssociativitySize; ++e)
 	{
 		//Check to see if the block is valid
-		if (temp[setIndex][e].valid == true)
+		if (temp[setIndex][e].valid)
 		{
 			//Checks the designated sets for matching tag
 			if (temp[setIndex][e].tag == tag)
@@ -89,27 +91,39 @@ cache processData(cache cache, char operation, unsigned int address, int size)
 				temp[setIndex][e].leastUsed++;
 				//increment hits, since cache contains tag
 				cache.hits++;
-				//cache was hit, update boolean for later use
+				//cache was hit, update for later use
 				cache.status.hit = true;
 			}
 		}
 
+		// printf("Prev: %d, cache: %d\n", previouslyHit, cache.hits);
+
 		//Then process the data for misses
-		if (cache.status.hit) return cache;
-		else 
+		if (previouslyHit == cache.hits)
 		{
-			cache.status.miss = true;
 			cache.misses++;
+			cache.status.miss = false;
 		}
+		else return cache;
+		// else 
+		// {
+		// 	// cache.status.miss++;
+		// 	cache.misses++;
+		// }
 
 		atCapacity = checkCacheCapacity(temp, setIndex, setAssociativitySize);
 		E = evictSet(cache, setIndex);
+
+		// if (E == 0)
+		// {
+		// 	printf("This is impossible\n");
+		// }
 
 		//Then cache is full, so evict
 		if (atCapacity == -1)
 		{
 			cache.evictions++;
-			cache.status.eviction = true;
+			// cache.status.eviction = true;
 			temp[setIndex][E].tag = tag;
 			temp[setIndex][E].leastUsed = 0;
 		}
@@ -136,8 +150,9 @@ int evictSet(cache cache, int setIndex)
 	int setAssociativitySize = cache.E;
 	int previousLeastUsed = -1;
 	int currentLeastUsed = -1;
-	int maxLeastUsed = -1;
 	cacheBlock **temp = cache.block;
+	int maxLeastUsed = 0;
+
 
 	//grab leastUsed in pairs to check
 	for (int e = 0; e < setAssociativitySize; e+=2)
@@ -184,7 +199,7 @@ int checkCacheCapacity(cacheBlock **temp, int setIndex, int setAssociativitySize
 ************************************************* */
 cache resetStatus(cache cache)
 {
-	cacheStatus status = {false, false, false};
+	cacheStatus status = {0, 0, 0};
 	cache.status = status;
 	return cache;
 }
@@ -203,9 +218,21 @@ cache processStatus(char operation, unsigned int address,
 
 	//Print relevant info for verbose flag
 	printf("%c %x,%d ", operation, address, size);
-	if (status.miss) printf("miss ");
-	if (status.hit)printf("hit ");
-	if (status.eviction) printf("eviction");		
+	for (int i = 0; i < status.miss; ++i)
+	{
+		printf("miss ");
+	}
+	for (int i = 0; i < status.hit; ++i)
+	{
+		printf("hit ");
+	}
+	for (int i = 0; i < status.eviction; ++i)
+	{
+		printf("eviction");
+	}
+	// if (status.miss) printf("miss ");
+	// if (status.hit)printf("hit ");
+	// if (status.eviction) printf("eviction");		
 	printf("\n");
 
 	//Reset status for next operation

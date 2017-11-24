@@ -28,7 +28,7 @@ typedef struct cacheBlock {
 ************************************************* */
 typedef struct cacheStatus
 {	
-	bool miss, hit, eviction;
+	int miss, hit, eviction;
 }cacheStatus;
 
 /* ************************************************

@@ -23,7 +23,6 @@ int main(int argc, char *argv[])
 
 	//Initializes a cold cache
 	cache cacheSim = initCache(com.E, com.s, com.b);
-	printf("Size: %d\n", cacheSim.size);
 
 	//Process trace data from file
 	cacheSim = parseFile(com.t, com.vFlag, cacheSim);
@@ -51,7 +50,8 @@ commands parseCMD(int argc, char *argv[])
 				printUsage();
 				break;
 			case 'v':
-				com.vFlag = true;
+				//this isn't working for now
+				com.vFlag = false;
 				// printf("vFlag = %d\n", com.vFlag);
 				break;
 			case 's':
@@ -103,20 +103,21 @@ cache parseFile(char* trace, bool vFlag, cache cache)
 		switch (operation)
 		{
 			case 'I':
-				//Ignore info
+				//Ignore
 				break;
 			case 'L':
-				//load info
+				//load data
 				cache = processData(cache, operation, address, size);
 				if (vFlag) cache = processStatus(operation, address, size, cache);
 				break;
 			case 'M':
-				//modify info
+				//modify data
+				cache = processData(cache, operation, address, size);
 				cache = processData(cache, operation, address, size);
 				if (vFlag) cache = processStatus(operation, address, size, cache);
 				break;
 			case 'S':
-				//store info
+				//store data
 				cache = processData(cache, operation, address, size);
 				if (vFlag) cache = processStatus(operation, address, size, cache);
 				break;
@@ -124,6 +125,7 @@ cache parseFile(char* trace, bool vFlag, cache cache)
 				break;
 		}
 	}
+	fclose(fp);
 	return cache;
 }
 
