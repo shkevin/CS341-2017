@@ -17,19 +17,8 @@ typedef struct commands {
 	char *t;
 }commands;
 
-/* ************************************************
-* Purpose: Prints the usage for the h flag
-************************************************* */
 void printUsage();
-
-/* ************************************************
-* Purpose: Parses the commands given by user 
-************************************************* */
 commands parseCMD(int argc, char *argv[]);
-
-/* ************************************************
-* Purpose: Parses the files for the operations 
-************************************************* */
 cache parseFile(char* trace, bool vFlag, cache cache);
 
 int main(int argc, char *argv[])
@@ -68,19 +57,25 @@ commands parseCMD(int argc, char *argv[])
 				printUsage();
 				break;
 			case 'v':
+				//this isn't working for now
 				com.vFlag = true;
+				// printf("vFlag = %d\n", com.vFlag);
 				break;
 			case 's':
 				com.s = atoi(optarg);
+				// printf("set: %d\n", com.s);
 				break;
 			case 'E':
 				com.E = atoi(optarg);
+				// printf("E: %d\n", com.E);
 				break;
 			case 'b':
 				com.b = atoi(optarg);
+				// printf("block: %d\n", com.b);
 				break;
 			case 't':
 				com.t = optarg;
+				// printf("trace: %s\n", com.t);
 				break;
 			default:
 				printf("Incorrect use\n");
