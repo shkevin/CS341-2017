@@ -89,7 +89,7 @@ cache processData(cache cache, char operation, memAddress address)
     if ((temp[e].valid) && (temp[e].tag == tag))
     {
       //increment variable for least recently used
-      temp = update_LRU(temp, e, cache.E);
+      temp = updateLRU(temp, e, cache.E);
       //increment hits, since cache contains tag
       cache.hits++;
       //cache was hit, update for later processing
@@ -115,13 +115,13 @@ cache processData(cache cache, char operation, memAddress address)
     cache.status.eviction++;
     cache.status.evictedTag = temp[block].tag;
     temp[block].tag = tag;
-    temp = update_LRU(temp, block, cache.E);
+    temp = updateLRU(temp, block, cache.E);
   }
   else //process at empty spot
   {
     temp[emptyOrFull].tag = tag;
     temp[emptyOrFull].valid = true;
-    temp = update_LRU(temp, emptyOrFull, cache.E);
+    temp = updateLRU(temp, emptyOrFull, cache.E);
   }
   
   //update the cache memory based off of the operations performed
@@ -241,7 +241,7 @@ cache processStatus(char operation, memAddress address,
   cacheStatus status = cache.status;
   
   //Print relevant info for verbose flag
-  printf("%c %llx,%d -> set: %d, tag: %llx ", operation, adressd, size);
+  printf("%c %llx,%d -> set: %d, tag: %llx ", operation, address, size);
   
   //Loop through number of misses
   for (int i = 0; i < status.miss; ++i)
