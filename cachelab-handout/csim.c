@@ -34,7 +34,9 @@ int main(int argc, char *argv[])
 
 	//Print hits, misses, and evictions for cache
 	printSummary(cacheSim.hits, cacheSim.misses, cacheSim.evictions);
-	// freeCache(cacheSim);
+
+	//Clear the cache memory right before shutdown
+	freeCache(cacheSim);
 	return 0;
 }
 
