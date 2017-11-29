@@ -115,18 +115,18 @@ cache parseFile(char* trace, bool vFlag, cache cache)
 			case 'L':
 				//load data
 				cache = processData(cache, operation, address);
-				if (vFlag) cache = processStatus(operation, address, size, cache);
+				// if (vFlag) cache = processStatus(operation, address, size, cache);
 				break;
 			case 'M':
 				//modify data
 				cache = processData(cache, operation, address);
 				cache = processData(cache, operation, address);
-				if (vFlag) cache = processStatus(operation, address, size, cache);
+				// if (vFlag) cache = processStatus(operation, address, size, cache);
 				break;
 			case 'S':
 				//store data
 				cache = processData(cache, operation, address);
-				if (vFlag) cache = processStatus(operation, address, size, cache);
+				// if (vFlag) cache = processStatus(operation, address, size, cache);
 				break;
 			default:
 				break;
