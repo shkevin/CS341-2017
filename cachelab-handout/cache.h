@@ -54,7 +54,7 @@ cache processData(cache cache, char operation,
 /* ************************************************
 * Purpose: Update LRU of block
 ************************************************* */
-cacheBlock* updateLRU(cacheBlock *temp, int block, int E)
+cacheBlock* updateLRU(cacheBlock *temp, int block, int E);
 
 /* ************************************************
 * Purpose: Evicts line if least recently used/loads
