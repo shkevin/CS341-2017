@@ -52,6 +52,11 @@ cache processData(cache cache, char operation,
 	memAddress address);
 
 /* ************************************************
+* Purpose: Update LRU of block
+************************************************* */
+cacheBlock* updateLRU(cacheBlock *temp, int block, int E)
+
+/* ************************************************
 * Purpose: Evicts line if least recently used/loads
 ************************************************* */
 int evictSet(cacheBlock *cacheLine, 

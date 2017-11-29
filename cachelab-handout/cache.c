@@ -82,7 +82,7 @@ cache processData(cache cache, char operation, memAddress address)
 		if ((temp[e].valid) && (temp[e].tag == tag))
 		{
 			//increment variable for least recently used
-			temp[e].leastUsed++;
+			temp = updateLRU(temp, E, cache.E);
 			//increment hits, since cache contains tag
 			cache.hits++;
 			//cache was hit, update for later processing
@@ -107,18 +107,43 @@ cache processData(cache cache, char operation, memAddress address)
 		cache.evictions++;
 		cache.status.eviction++;		
 		temp[E].tag = tag;
-		temp[E].leastUsed = 0;
+		temp = updateLRU(temp, E, cache.E);
 	}
 	else //process at empty spot 
 	{
 		temp[emptyOrFull].tag = tag;
 		temp[emptyOrFull].valid = true;
-		temp[emptyOrFull].leastUsed = 0;
+		temp = updateLRU(temp, E, cache.E);
 	}
 
 	//update the cache memory based off of the operations performed
 	cache.block[setIndex] = temp;
 	return cache;
+}
+
+/* ************************************************
+ * PARAMETERS: Cache line associated with set, 
+   Cache block that needs LRU set to 0,
+   E - associativity
+ * FUNCTION: Updates the least recently used bits 
+   for each block in the cache line that wasn't hit
+   or evicted. Logic needed to correctly determine
+   which block is evicted upon a cache miss.
+ * RETURNS: Cache line with updated LRUs
+ ************************************************* */
+cacheBlock* updateLRU(cacheBlock *temp, int block, int E)
+{
+  cacheBlock* cacheSet = temp;
+  cacheSet[block].leastUsed = 0;
+  for(int i = 0; i < E; i++)
+  {
+    if(i != block)
+    {
+      temp[i].leastUsed++;
+    }
+    // else continue;
+  }
+  return cacheSet;
 }
 
 /* ************************************************
@@ -157,16 +182,6 @@ int evictSet(cacheBlock *temp, int setAssociativitySize)
 			previousLeastUsed = nextLeastUsed;	
 		} 
 	}
-
-	// int largest = temp[0].leastUsed;
-	// for (int e = 1; e < setAssociativitySize; ++e)
-	// {
-	// 	if (largest < temp[e].leastUsed)
-	// 	{
-	// 		maxLeastUsed = e;
-	// 		largest = temp[e].leastUsed;
-	// 	}
-	// }
 
 	//evict the line with the highest leastUsed variable
 	return maxLeastUsed;
