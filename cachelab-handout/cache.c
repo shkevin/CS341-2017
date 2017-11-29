@@ -241,7 +241,7 @@ cache processStatus(char operation, memAddress address,
   cacheStatus status = cache.status;
   
   //Print relevant info for verbose flag
-  printf("%c %llx,%d -> set: %d, tag: %llx ", operation, address, size);
+  printf("%c %llx,%d ", operation, address, size);
   
   //Loop through number of misses
   for (int i = 0; i < status.miss; ++i)
