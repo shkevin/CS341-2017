@@ -6,7 +6,6 @@
 #include <stdbool.h>
 #include <math.h>
 #include <stdlib.h>
-#include <stdio.h>
 
 typedef unsigned long long memAddress;
 
