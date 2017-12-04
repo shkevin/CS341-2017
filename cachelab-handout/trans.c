@@ -11,7 +11,7 @@
 #include "cachelab.h"
 
 int is_transpose(int M, int N, int A[N][M], int B[M][N]);
-void transposeM32(int A[N][M], int B[M][N]);
+void transposeM32(int M, int N, int A[N][M], int B[M][N]);
 
 /* 
  * transpose_submit - This is the solution transpose function that you
@@ -44,7 +44,7 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
    //this implies we can have an 8x8 block to iterate over
    if (M == 32)
    {
-       transposeM32(A, B);
+       transposeM32(M, N, A, B);
    }
    //Need to be able to handle the odd M = 61 case.
    if (M == 61)
@@ -190,7 +190,7 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 }
 
 
-void transposeM32(int A[N][M], int B[M][N])
+void transposeM32(int M, int N, int A[N][M], int B[M][N])
 {
     int blockRow, blockCol, row, col;
 
