@@ -43,29 +43,7 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
    //this implies we can have an 8x8 block to iterate over
    if (M == 32)
    {
-       for (blockRow = 0; blockRow < 4; blockRow++)
-       {
-           for (blockCol = 0; blockCol < 4; blockCol++)
-           {
-               //to iterate over the blocks
-               for (row = blockRow * 8; row < blockRow * 8 + 8; row++)
-               {
-                   //Handle diagonal
-                   if (blockRow == blockCol)
-                   {
-                       B[row][row] = A[row][row];
-                   }
-                   for (col = blockCol * 8; col < blockCol * 8 + 8; col++)
-                   {
-                       //transpose non diagonal
-                       if (row != col)
-                       {
-                           B[row][col] = A[col][row];
-                       }
-                   }
-               }
-            }
-       }
+       transposeM32(A, B);
    }
    //Need to be able to handle the odd M = 61 case.
    if (M == 61)
@@ -211,18 +189,41 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 }
 
 
-// void transposeM32(int A[N][M], int B[M][N])
-// {
+void transposeM32(int A[N][M], int B[M][N])
+{
+    int blockRow, blockCol, row, col;
 
-// }
+    for (blockRow = 0; blockRow < 4; blockRow++)
+    {
+        for (blockCol = 0; blockCol < 4; blockCol++)
+        {
+               //to iterate over the blocks
+           for (row = blockRow * 8; row < blockRow * 8 + 8; row++)
+           {
+                   //Handle diagonal
+               if (blockRow == blockCol)
+               {
+                   B[row][row] = A[row][row];
+               }
+               for (col = blockCol * 8; col < blockCol * 8 + 8; col++)
+               {
+                    //transpose non diagonal
+                   if (row != col)
+                   {
+                       B[row][col] = A[col][row];
+                   }
+               }
+           }
+       }
+   }
 
 
 /* 
  * trans - A simple baseline transpose function, not optimized for the cache.
  */
-char trans_desc[] = "Simple row-wise scan transpose";
-void trans(int M, int N, int A[N][M], int B[M][N])
-{
+   char trans_desc[] = "Simple row-wise scan transpose";
+   void trans(int M, int N, int A[N][M], int B[M][N])
+   {
     int i, j, tempStorage;
 
     for (i = 0; i < N; i++) {
