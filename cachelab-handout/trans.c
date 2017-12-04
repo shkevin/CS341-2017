@@ -22,139 +22,179 @@ int is_transpose(int M, int N, int A[N][M], int B[M][N]);
 char transpose_submit_desc[] = "Transpose submission";
 void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 {
-    int tmp[12] = {0}; // 12 local int to be utilized
+    char transpose_submit_desc[] = "Transpose submission";
+void transpose_submit(int M, int N, int A[N][M], int B[M][N])
+{
+   // REQUIRES(M > 0);
+   // REQUIRES(N > 0);
+   int block_r, block_c, r, c;
+   /* Ordinary */
+   if (M == 32)
+   {
+       for (block_r = 0; block_r < 4; block_r++)
+           for (block_c = 0; block_c < 4; block_c++)
+               for (r = block_r * 8; r < block_r * 8 + 8; r++)
+               {
+                   /* diagonal references produce conflicts, so solve it first */
+                   if (block_r == block_c)
+                   {
+                       B[r][r] = A[r][r];
+                   }
+                   for (c = block_c * 8; c < block_c * 8 + 8; c++)
+                   {
+                       /* A[r] will be corrupted by B[r], so in this case, just don't access A[r]
+                          (or B[r] will be corrupted again, causing double evictions) */
+                       if (r != c)
+                       {
+                           B[r][c] = A[c][r];
+                       }
+                   }
+               }
+   }
+   // ENSURES(is_transpose(M, N, A, B));
+   if (M == 61)
+   {
+       for (block_r = 0; block_r < 8; block_r++)
+           for (block_c = 0; block_c < 9; block_c++)
+               /* be careful with loop order. 72-67=5, 64-61=3.
+                  so we choose to loop column of B first, thus saving more overbound accesses */
+               for (c = block_c * 8; c < block_c * 8 + 8 && c < 67; c++)
+                   for (r = block_r * 8; r < block_r * 8 + 8 && r < 61; r++)
+                       B[r][c] = A[c][r];
+   }
 
-    if(M == 32 && N == 32)  // in this case, the transpose block is set with 8x8
-    {
-        for (tmp[8] = 0; tmp[8] < N; tmp[8]+=8) 
-        {
-            for (tmp[9] = 0; tmp[9] < M; tmp[9]++)
-            {
-                tmp[0] = A[tmp[8]][tmp[9]];   // read 8 numbers per time, miss once
-                tmp[1] = A[tmp[8]+1][tmp[9]];
-                tmp[2] = A[tmp[8]+2][tmp[9]];
-                tmp[3] = A[tmp[8]+3][tmp[9]];
-                tmp[4] = A[tmp[8]+4][tmp[9]];
-                tmp[5] = A[tmp[8]+5][tmp[9]];
-                tmp[6] = A[tmp[8]+6][tmp[9]];
-                tmp[7] = A[tmp[8]+7][tmp[9]];
+   if (M == 64)
+   /* we can no longer just block into 8*8 blocks as it will cause conflict even in the same matrix */
+   /*  A     B
+     |a|b| |a|b|
+     |c|d| |c|d|
+    */
+   {
+       int r0, r1, r2, r3;
+       for (block_r = 0; block_r < 8; block_r++)
+           for (block_c = 0; block_c < 8; block_c++)
+           {
+               /* Part A: usual way */
+               for (c = block_c * 8; c < block_c * 8 + 4; c++)
+               {
+                   for (r = block_r * 8; r < block_r * 8 + 4; r++)
+                   {
+                       if (r != c)
+                       {
+                           B[r][c] = A[c][r];
+                       }
+                   }
+                   if (block_r == block_c)
+                   {
+                       B[c][c] = A[c][c];
+                   }
+               }
+               /* Part B: used to store what should be in C */
+               for (c = block_c * 8 + 4; c < block_c * 8 + 8; c++)
+               {
+                   for (r = block_r * 8; r < block_r * 8 + 4; r++)
+                   {
+                       if (r != c - 4)
+                       {
+                           B[r][c] = A[c - 4][r + 4];
+                       }
+                   }
+                   if (block_c == block_r)
+                   {
+                       B[c - 4][c] = A[c - 4][c];
+                   }
+               }
+               /* Part B & C: transport B into registers,
+                              then fill B using values in original matrix,
+                              finally fill C with registers */
+               /* put 2 rows of B into register */
+               r = block_r * 8;
+               c = block_c * 8 + 4;
+               r0 = B[r][c];
+               r1 = B[r][c + 1];
+               r2 = B[r][c + 2];
+               r3 = B[r][c + 3];
+               for (c = block_c * 8 + 4; c < block_c * 8 + 8; c++)
+               {
+                   B[r][c] = A[c][r];
+               }
+               r = block_r * 8 + 4;
+               c = block_c * 8;
+               B[r][c] = r0;
+               B[r][c + 1] = r1;
+               B[r][c + 2] = r2;
+               B[r][c + 3] = r3;
 
-                B[tmp[9]][tmp[8]] = tmp[0];   // as the set is 8 integer and 32 sets, the matrix A have 4 sets per line.
-                B[tmp[9]][tmp[8]+1] = tmp[1]; // so the miss of this case is 8 for the 1st time
-                B[tmp[9]][tmp[8]+2] = tmp[2];
-                B[tmp[9]][tmp[8]+3] = tmp[3];
-                B[tmp[9]][tmp[8]+4] = tmp[4];
-                B[tmp[9]][tmp[8]+5] = tmp[5];
-                B[tmp[9]][tmp[8]+6] = tmp[6];
-                B[tmp[9]][tmp[8]+7] = tmp[7];
-            }
-        }
-    }
-    /*
-     * The matrix 64x64 is very difficult as there is one key problem:
-     * the matrix is 8 sets per line and this will cause the 1st line and the 5th line in the same block
-     * will cause miss, so the maximum operand range of cache is 4 vertical lines of matrix. 
-     * But the cache read 8 integers per block. So due to this situation, some tricks need to be considered.
-     * The details are described below:
-     * 1 process the matrix by 8x8 unit block and in each unit do:
-     * 2 divide the unit to 4 4x4 block to A11(left up 4x4 block), A22(right up 4x4 block)
-     *                                     A33(left down 4x4 block), A44(right down 4x4 block)
-     *   the matrix B has the same division name                                  
-     * 3 read the up 4 lines of A11 and A22 to B11 and B22(as the A22 should go to B33, but this will cause miss, so 
-     *   store A22 to B22 for temporary) 
-     * 4 read B22 per 4 integers(this moment B22 still in the cache) to the local integers.
-     *   read A33 to B22.
-     * 5 after above step, store local integers and A44 to the B44
-     *
-     */
-    else if(M == 64 && N == 64)
-    {   
-        for (tmp[0] = 0; tmp[0] < 64; tmp[0] += 8) // x
-        {
-            for (tmp[1] = 0; tmp[1] < 64; tmp[1] += 8) // y
-            {
-                // move upper 4 lines A11 and A22 to the B11 and B22 matrix upper 4 lines
-                for(tmp[2] = tmp[1]; tmp[2] < tmp[1]+4; tmp[2]++) // y
-                {
-                    tmp[3] = A[tmp[2]][tmp[0]];
-                    tmp[4] = A[tmp[2]][tmp[0]+1];
-                    tmp[5] = A[tmp[2]][tmp[0]+2];
-                    tmp[6] = A[tmp[2]][tmp[0]+3];
-                    tmp[7] = A[tmp[2]][tmp[0]+4];
-                    tmp[8] = A[tmp[2]][tmp[0]+5];
-                    tmp[9] = A[tmp[2]][tmp[0]+6];
-                    tmp[10] = A[tmp[2]][tmp[0]+7];
-                    B[tmp[0]][tmp[2]] = tmp[3];
-                    B[tmp[0]+1][tmp[2]] = tmp[4];
-                    B[tmp[0]+2][tmp[2]] = tmp[5];
-                    B[tmp[0]+3][tmp[2]] = tmp[6];
-                    B[tmp[0]][tmp[2]+4] = tmp[7];
-                    B[tmp[0]+1][tmp[2]+4] = tmp[8];
-                    B[tmp[0]+2][tmp[2]+4] = tmp[9];
-                    B[tmp[0]+3][tmp[2]+4] = tmp[10];
-                }
-                // fill lower part of Matrix B  
-                for(tmp[3] = tmp[0]+4; tmp[3]<tmp[0]+8;tmp[3]++)
-                {
-                    // store B22 to local integers
-                    tmp[4] = B[tmp[3]-4][tmp[1]+4];
-                    tmp[5] = B[tmp[3]-4][tmp[1]+5];
-                    tmp[6] = B[tmp[3]-4][tmp[1]+6];
-                    tmp[7] = B[tmp[3]-4][tmp[1]+7];
-                    // store A33 to B22
-                    B[tmp[3]-4][tmp[1]+4] = A[tmp[1]+4][tmp[3]-4];
-                    B[tmp[3]-4][tmp[1]+5] = A[tmp[1]+5][tmp[3]-4];
-                    B[tmp[3]-4][tmp[1]+6] = A[tmp[1]+6][tmp[3]-4];
-                    B[tmp[3]-4][tmp[1]+7] = A[tmp[1]+7][tmp[3]-4];
-                    // store local integers to B33
-                    B[tmp[3]][tmp[1]] = tmp[4];
-                    B[tmp[3]][tmp[1]+1] = tmp[5];
-                    B[tmp[3]][tmp[1]+2] = tmp[6];
-                    B[tmp[3]][tmp[1]+3] = tmp[7];
-                    // load A44 to B44
-                    B[tmp[3]][tmp[1]+4] = A[tmp[1]+4][tmp[3]];
-                    B[tmp[3]][tmp[1]+5] = A[tmp[1]+5][tmp[3]];
-                    B[tmp[3]][tmp[1]+6] = A[tmp[1]+6][tmp[3]];
-                    B[tmp[3]][tmp[1]+7] = A[tmp[1]+7][tmp[3]];
-                }
-            }
-        }
-    }
-    /*
-     * This is much easier than the above as the standard is much lower
-     * So I just test this proble with different size and store the disgonal element in 
-     * the local integer than store the local integer to the destination matrix
-     * I can also do the optimization as above, but I think below optimization is enough.
-     */                 
-    else if(M == 61 && N == 67)
-    {
-        for(tmp[0] = 0; tmp[0] < 72; tmp[0]+= 32)
-        {       
-            for(tmp[1] = 0; tmp[1] < 64; tmp[1]+= 16)
-            {      
-                tmp[4] = (tmp[0]+32) > 64? 67:tmp[0]+32;
-                for(tmp[2] = tmp[0]; tmp[2] < tmp[4]; tmp[2]++)
-                {
-                    tmp[5] = (tmp[1]+16)>61?61:tmp[1]+16;     
-                    for(tmp[3] = tmp[1]; tmp[3] < tmp[5]; tmp[3]++)
-                    {
-                        if(tmp[3] == tmp[2])
-                        {
-                            tmp[6] = A[tmp[2]][tmp[3]];
-                            tmp[7] = 1;
-                        }   
-                        else
-                            B[tmp[3]][tmp[2]] = A[tmp[2]][tmp[3]];
-                    }
-                    if(tmp[7])
-                    {
-                        B[tmp[2]][tmp[2]] = tmp[6];
-                        tmp[7] = 0;
-                    }
-                }
-            }
-        }
-    }   
+               r = block_r * 8 + 1;
+               c = block_c * 8 + 4;
+               r0 = B[r][c];
+               r1 = B[r][c + 1];
+               r2 = B[r][c + 2];
+               r3 = B[r][c + 3];
+               for (c = block_c * 8 + 4; c < block_c * 8 + 8; c++)
+               {
+                   B[r][c] = A[c][r];
+               }
+               r = block_r * 8 + 5;
+               c = block_c * 8;
+               B[r][c] = r0;
+               B[r][c + 1] = r1;
+               B[r][c + 2] = r2;
+               B[r][c + 3] = r3;
+
+               r = block_r * 8 + 2;
+               c = block_c * 8 + 4;
+               r0 = B[r][c];
+               r1 = B[r][c + 1];
+               r2 = B[r][c + 2];
+               r3 = B[r][c + 3];
+               for (c = block_c * 8 + 4; c < block_c * 8 + 8; c++)
+               {
+                   B[r][c] = A[c][r];
+               }
+               r = block_r * 8 + 6;
+               c = block_c * 8;
+               B[r][c] = r0;
+               B[r][c + 1] = r1;
+               B[r][c + 2] = r2;
+               B[r][c + 3] = r3;
+
+               r = block_r * 8 + 3;
+               c = block_c * 8 + 4;
+               r0 = B[r][c];
+               r1 = B[r][c + 1];
+               r2 = B[r][c + 2];
+               r3 = B[r][c + 3];
+               for (c = block_c * 8 + 4; c < block_c * 8 + 8; c++)
+               {
+                   B[r][c] = A[c][r];
+               }
+               r = block_r * 8 + 7;
+               c = block_c * 8;
+               B[r][c] = r0;
+               B[r][c + 1] = r1;
+               B[r][c + 2] = r2;
+               B[r][c + 3] = r3;
+
+
+
+               /* Part D: usual way */
+               for (r = block_r * 8 + 4; r < block_r * 8 + 8; r++)
+               {
+                   if (block_c == block_r)
+                   {
+                       B[r][r] = A[r][r];
+                   }
+                   for (c = block_c * 8 + 4; c < block_c * 8 + 8; c++)
+                   {
+                       if (r != c)
+                       {
+                           B[r][c] = A[c][r];
+                       }
+                   }
+               }
+           }
+   }   
 }
 
 /* 
@@ -168,12 +208,12 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 char trans_desc[] = "Simple row-wise scan transpose";
 void trans(int M, int N, int A[N][M], int B[M][N])
 {
-    int i, j, tmp;
+    int i, j, tempStorage;
 
     for (i = 0; i < N; i++) {
         for (j = 0; j < M; j++) {
-            tmp = A[i][j];
-            B[j][i] = tmp;
+            tempStorage = A[i][j];
+            B[j][i] = tempStorage;
         }
     }    
 
