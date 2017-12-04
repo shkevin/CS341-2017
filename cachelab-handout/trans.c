@@ -167,7 +167,7 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
                    B[row][col] = A[col][row];
                }
                row = blockRow * 8 + 6;
-               ccol = blockCol * 8;
+               col = blockCol * 8;
                B[row][col] = row1;
                B[row][col + 1] = row2;
                B[row][col + 2] = row3;
@@ -209,10 +209,10 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 }
 
 
-void transposeM32(int A[N][M], int B[M][N])
-{
-
-}
+// void transposeM32(int A[N][M], int B[M][N])
+// {
+    
+// }
 
 
 /* 
