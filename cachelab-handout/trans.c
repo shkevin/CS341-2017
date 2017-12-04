@@ -89,6 +89,7 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
    {
        int row1, row2, row3, row4;
        for (blockRow = 0; blockRow < 8; blockRow++)
+       {
            for (blockCol = 0; blockCol < 8; blockCol++)
            {
                for (col = blockCol * 8; col < blockCol * 8 + 4; col++)
@@ -205,13 +206,14 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
                    }
                }
            }
+       }
    }
 }
 
 
 // void transposeM32(int A[N][M], int B[M][N])
 // {
-    
+
 // }
 
 
