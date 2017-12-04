@@ -33,7 +33,6 @@ int is_transpose(int M, int N, int A[N][M], int B[M][N]);
 
 /* s = 5, E = 1, b = 5 */
 /* 12 local variables at most */
-char transpose_submit_desc[] = "Transpose submission";
 void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 {
    // REQUIRES(M > 0);
