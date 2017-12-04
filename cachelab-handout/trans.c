@@ -23,6 +23,20 @@ char transpose_submit_desc[] = "Transpose submission";
 void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 {
     char transpose_submit_desc[] = "Transpose submission";
+int is_transpose(int M, int N, int A[N][M], int B[M][N]);
+
+/*
+* transpose_submit - This is the solution transpose function that you
+*     will be graded on for Part B of the assignment. Do not change
+*     the description string "Transpose submission", as the driver
+*     searches for that string to identify the transpose function to
+*     be graded. The REQUIRES and ENSURES from 15-122 are included
+*     for your convenience. They can be removed if you like.
+*/
+
+/* s = 5, E = 1, b = 5 */
+/* 12 local variables at most */
+char transpose_submit_desc[] = "Transpose submission";
 void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 {
    // REQUIRES(M > 0);
@@ -194,7 +208,7 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
                    }
                }
            }
-   }   
+   }
 }
 
 /* 
