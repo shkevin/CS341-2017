@@ -217,6 +217,7 @@ void transposeM32(int M, int N, int A[N][M], int B[M][N])
            }
        }
    }
+}
 
 
 /* 
