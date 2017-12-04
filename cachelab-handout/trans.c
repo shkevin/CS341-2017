@@ -42,6 +42,7 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
     the transpose copy. This standard will be used in order to block the 
     matrix and try to minimize misses.
    */
+
    /*
     -This implies we can have an 8x8 block to iterate over.
     -Uses a total of 8 variables, including M, N, A, B.
@@ -146,7 +147,7 @@ void transposeM64(int M, int N, int A[N][M], int B[M][N])
             {
                 for (row = blockRow * 8; row < blockRow * 8 + 4; row++)
                 {
-                       //for non diagonal
+                    //for non diagonal
                     if (row != col)
                     {
                         B[row][col] = A[col][row];
@@ -175,7 +176,7 @@ void transposeM64(int M, int N, int A[N][M], int B[M][N])
 
             /*
                 Store 2 rows of B in order to save accesses. Takes advantage
-                of pointers to immitate an array.
+                of pointers to immitate an array. This is used quite a bit.
             */
             row = blockRow * 8;
             col = blockCol * 8 + 4;
