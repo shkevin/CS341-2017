@@ -19,187 +19,188 @@ int is_transpose(int M, int N, int A[N][M], int B[M][N]);
  *     searches for that string to identify the transpose function to
  *     be graded. 
  */
+/* ************************************************
+ * PARAMETERS: M row size, N col size, matrix to
+               transpose from, matrix to transpose
+               to.
+ * FUNCTION: Transpose the given matrices while
+             trying to minimize accessing and misses
+             and try to maximize the hits. This 
+             function takes advantage of cache 
+             blocking in order to do this.
+ * Usage: ./test-trans -M 64 -N 64, can change M,N
+ * RETURNS: None.
+ ************************************************* */
 char transpose_submit_desc[] = "Transpose submission";
-int is_transpose(int M, int N, int A[N][M], int B[M][N]);
-
-/*
-* transpose_submit - This is the solution transpose function that you
-*     will be graded on for Part B of the assignment. Do not change
-*     the description string "Transpose submission", as the driver
-*     searches for that string to identify the transpose function to
-*     be graded. The REQUIRES and ENSURES from 15-122 are included
-*     for your convenience. They can be removed if you like.
-*/
-
-/* s = 5, E = 1, b = 5 */
-/* 12 local variables at most */
 void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 {
-   // REQUIRES(M > 0);
-   // REQUIRES(N > 0);
-   int block_r, block_c, r, c;
-   /* Ordinary */
+   /*
+    We need 4 for loops in order to iterate the blocks, and to perform
+    the transpose copy. This standard will be used in order to block the 
+    matrix and try to minimize misses.
+   */
+   int blockRow, blockCol, row, col;
+   //this implies we can have an 8x8 block to iterate over
    if (M == 32)
    {
-       for (block_r = 0; block_r < 4; block_r++)
-           for (block_c = 0; block_c < 4; block_c++)
-               for (r = block_r * 8; r < block_r * 8 + 8; r++)
+       for (blockRow = 0; blockRow < 4; blockRow++)
+       {
+           for (blockCol = 0; blockCol < 4; blockCol++)
+           {
+               //to iterate over the blocks
+               for (row = blockRow * 8; row < blockRow * 8 + 8; row++)
                {
-                   /* diagonal references produce conflicts, so solve it first */
-                   if (block_r == block_c)
+                   //Handle diagonal
+                   if (blockRow == blockCol)
                    {
-                       B[r][r] = A[r][r];
+                       B[row][row] = A[row][row];
                    }
-                   for (c = block_c * 8; c < block_c * 8 + 8; c++)
+                   for (col = blockCol * 8; col < blockCol * 8 + 8; col++)
                    {
-                       /* A[r] will be corrupted by B[r], so in this case, just don't access A[r]
-                          (or B[r] will be corrupted again, causing double evictions) */
-                       if (r != c)
+                       //transpose non diagonal
+                       if (row != col)
                        {
-                           B[r][c] = A[c][r];
+                           B[row][col] = A[col][row];
                        }
                    }
                }
+            }
+       }
    }
-   // ENSURES(is_transpose(M, N, A, B));
+   //Need to be able to handle the odd M = 61 case.
    if (M == 61)
    {
-       for (block_r = 0; block_r < 8; block_r++)
-           for (block_c = 0; block_c < 9; block_c++)
-               /* be careful with loop order. 72-67=5, 64-61=3.
-                  so we choose to loop column of B first, thus saving more overbound accesses */
-               for (c = block_c * 8; c < block_c * 8 + 8 && c < 67; c++)
-                   for (r = block_r * 8; r < block_r * 8 + 8 && r < 61; r++)
-                       B[r][c] = A[c][r];
+       for (blockRow = 0; blockRow < 8; blockRow++)
+       {
+           for (blockCol = 0; blockCol < 9; blockCol++)
+           {
+               for (col = blockCol * 8; col < blockCol * 8 + 8 && col < 67; col++)
+               {
+                   for (row = blockRow * 8; row < blockRow * 8 + 8 && row < 61; row++)
+                   {
+                       B[row][col] = A[col][row];
+                   }
+               }
+           }
+       }
    }
 
    if (M == 64)
-   /* we can no longer just block into 8*8 blocks as it will cause conflict even in the same matrix */
-   /*  A     B
-     |a|b| |a|b|
-     |c|d| |c|d|
-    */
    {
-       int r0, r1, r2, r3;
-       for (block_r = 0; block_r < 8; block_r++)
-           for (block_c = 0; block_c < 8; block_c++)
+       int row1, row2, row3, row4;
+       for (blockRow = 0; blockRow < 8; blockRow++)
+           for (blockCol = 0; blockCol < 8; blockCol++)
            {
-               /* Part A: usual way */
-               for (c = block_c * 8; c < block_c * 8 + 4; c++)
+               for (col = blockCol * 8; col < blockCol * 8 + 4; col++)
                {
-                   for (r = block_r * 8; r < block_r * 8 + 4; r++)
+                   for (row = blockRow * 8; row < blockRow * 8 + 4; row++)
                    {
-                       if (r != c)
+                       //for non diagonal
+                       if (row != col)
                        {
-                           B[r][c] = A[c][r];
+                           B[row][col] = A[col][row];
                        }
                    }
-                   if (block_r == block_c)
+                   if (blockRow == blockCol)
                    {
-                       B[c][c] = A[c][c];
+                       B[col][col] = A[col][col];
                    }
                }
-               /* Part B: used to store what should be in C */
-               for (c = block_c * 8 + 4; c < block_c * 8 + 8; c++)
+               for (col = blockCol * 8 + 4; col < blockCol * 8 + 8; col++)
                {
-                   for (r = block_r * 8; r < block_r * 8 + 4; r++)
+                   for (row = blockRow * 8; row < blockRow * 8 + 4; row++)
                    {
-                       if (r != c - 4)
+                       if (row != col - 4)
                        {
-                           B[r][c] = A[c - 4][r + 4];
+                           B[row][col] = A[col - 4][row + 4];
                        }
                    }
-                   if (block_c == block_r)
+                   if (blockCol == blockRow)
                    {
-                       B[c - 4][c] = A[c - 4][c];
+                       B[col - 4][col] = A[col - 4][col];
                    }
                }
-               /* Part B & C: transport B into registers,
-                              then fill B using values in original matrix,
-                              finally fill C with registers */
-               /* put 2 rows of B into register */
-               r = block_r * 8;
-               c = block_c * 8 + 4;
-               r0 = B[r][c];
-               r1 = B[r][c + 1];
-               r2 = B[r][c + 2];
-               r3 = B[r][c + 3];
-               for (c = block_c * 8 + 4; c < block_c * 8 + 8; c++)
+
+               //Store 2 rows of B in order to save accesses
+               row = blockRow * 8;
+               col = blockCol * 8 + 4;
+               row1 = B[row][col];
+               row2 = B[row][col + 1];
+               row3 = B[row][col + 2];
+               row4 = B[row][col + 3];
+               for (col = blockCol * 8 + 4; col < blockCol * 8 + 8; col++)
                {
-                   B[r][c] = A[c][r];
+                   B[row][col] = A[col][row];
                }
-               r = block_r * 8 + 4;
-               c = block_c * 8;
-               B[r][c] = r0;
-               B[r][c + 1] = r1;
-               B[r][c + 2] = r2;
-               B[r][c + 3] = r3;
+               row = blockRow * 8 + 4;
+               col = blockCol * 8;
+               B[row][col] = row1;
+               B[row][col + 1] = row2;
+               B[row][col + 2] = row3;
+               B[row][col + 3] = row4;
 
-               r = block_r * 8 + 1;
-               c = block_c * 8 + 4;
-               r0 = B[r][c];
-               r1 = B[r][c + 1];
-               r2 = B[r][c + 2];
-               r3 = B[r][c + 3];
-               for (c = block_c * 8 + 4; c < block_c * 8 + 8; c++)
+               row = blockRow * 8 + 1;
+               col = blockCol * 8 + 4;
+               row1 = B[row][col];
+               row2 = B[row][col + 1];
+               row3 = B[row][col + 2];
+               row4 = B[row][col + 3];
+               for (col = blockCol * 8 + 4; col < blockCol * 8 + 8; col++)
                {
-                   B[r][c] = A[c][r];
+                   B[row][col] = A[col][row];
                }
-               r = block_r * 8 + 5;
-               c = block_c * 8;
-               B[r][c] = r0;
-               B[r][c + 1] = r1;
-               B[r][c + 2] = r2;
-               B[r][c + 3] = r3;
+               row = blockRow * 8 + 5;
+               col = blockCol * 8;
+               B[row][col] = row1;
+               B[row][col + 1] = row2;
+               B[row][col + 2] = row3;
+               B[row][col + 3] = row4;
 
-               r = block_r * 8 + 2;
-               c = block_c * 8 + 4;
-               r0 = B[r][c];
-               r1 = B[r][c + 1];
-               r2 = B[r][c + 2];
-               r3 = B[r][c + 3];
-               for (c = block_c * 8 + 4; c < block_c * 8 + 8; c++)
+               row = blockRow * 8 + 2;
+               col = blockCol * 8 + 4;
+               row1 = B[row][col];
+               row2 = B[row][col + 1];
+               row3 = B[row][col + 2];
+               row4 = B[row][col + 3];
+               for (col = blockCol * 8 + 4; col < blockCol * 8 + 8; col++)
                {
-                   B[r][c] = A[c][r];
+                   B[row][col] = A[col][row];
                }
-               r = block_r * 8 + 6;
-               c = block_c * 8;
-               B[r][c] = r0;
-               B[r][c + 1] = r1;
-               B[r][c + 2] = r2;
-               B[r][c + 3] = r3;
+               row = blockRow * 8 + 6;
+               ccol = blockCol * 8;
+               B[row][col] = row1;
+               B[row][col + 1] = row2;
+               B[row][col + 2] = row3;
+               B[row][col + 3] = row4;
 
-               r = block_r * 8 + 3;
-               c = block_c * 8 + 4;
-               r0 = B[r][c];
-               r1 = B[r][c + 1];
-               r2 = B[r][c + 2];
-               r3 = B[r][c + 3];
-               for (c = block_c * 8 + 4; c < block_c * 8 + 8; c++)
+               row = blockRow * 8 + 3;
+               col = blockCol * 8 + 4;
+               row1 = B[row][col];
+               row2 = B[row][col + 1];
+               row3 = B[row][col + 2];
+               row4 = B[row][col + 3];
+               for (col = blockCol * 8 + 4; col < blockCol * 8 + 8; col++)
                {
-                   B[r][c] = A[c][r];
+                   B[row][col] = A[col][row];
                }
-               r = block_r * 8 + 7;
-               c = block_c * 8;
-               B[r][c] = r0;
-               B[r][c + 1] = r1;
-               B[r][c + 2] = r2;
-               B[r][c + 3] = r3;
+               row = blockRow * 8 + 7;
+               col = blockCol * 8;
+               B[row][col] = row1;
+               B[row][col + 1] = row2;
+               B[row][col + 2] = row3;
+               B[row][col + 3] = row4;
 
-
-
-               /* Part D: usual way */
-               for (r = block_r * 8 + 4; r < block_r * 8 + 8; r++)
+               for (row = blockRow * 8 + 4; row < blockRow * 8 + 8; row++)
                {
-                   if (block_c == block_r)
+                   if (blockCol == blockRow)
                    {
-                       B[r][r] = A[r][r];
+                       B[row][row] = A[row][row];
                    }
-                   for (c = block_c * 8 + 4; c < block_c * 8 + 8; c++)
+                   for (col = blockCol * 8 + 4; col < blockCol * 8 + 8; col++)
                    {
-                       if (r != c)
+                       if (row != col)
                        {
-                           B[r][c] = A[c][r];
+                           B[row][col] = A[col][row];
                        }
                    }
                }
@@ -207,10 +208,12 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
    }
 }
 
-/* 
- * You can define additional transpose functions below. We've defined
- * a simple one below to help you get started. 
- */ 
+
+void transposeM32(int A[N][M], int B[M][N])
+{
+
+}
+
 
 /* 
  * trans - A simple baseline transpose function, not optimized for the cache.
