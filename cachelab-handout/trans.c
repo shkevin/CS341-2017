@@ -42,81 +42,168 @@ void transpose_submit(int M, int N, int A[N][M], int B[M][N])
     the transpose copy. This standard will be used in order to block the 
     matrix and try to minimize misses.
    */
-   //this implies we can have an 8x8 block to iterate over
+   /*
+    -This implies we can have an 8x8 block to iterate over.
+    -Uses a total of 8 variables, including M, N, A, B.
+   */
    if (M == 32) transposeM32(M, N, A, B);
-   
-   //Need to be able to handle the odd M = 61 case.
+
+   /*
+    -Need to be able to handle the M = 61 case.
+    -Uses a total of 8 variables, including M, N, A, B.
+   */
    if (M == 61) transposeM61(M, N, A, B);
 
+   /*
+    -Need to be able to handle the M = 64 case. This is where it gets tricky.
+    -Uses a total of 12 variables, the max, including M, N, A, B.
+   */
    if (M == 64) transposeM64(M, N, A, B);
 }
 
+/* ************************************************
+ * PARAMETERS: M row size, N col size, matrix to
+               transpose from, matrix to transpose
+               to.
+ * FUNCTION: Blocks up the matrices based off of the
+             32x32 case.
+ * RETURNS: None.
+ ************************************************* */
+void transposeM32(int M, int N, int A[N][M], int B[M][N])
+{
+    int blockRow, blockCol, row, col;
+    for (blockRow = 0; blockRow < 4; blockRow++)
+    {
+        for (blockCol = 0; blockCol < 4; blockCol++)
+        {
+            //to iterate over the blocks
+            for (row = blockRow * 8; row < blockRow * 8 + 8; row++)
+            {
+                //Handle diagonal
+                if (blockRow == blockCol)
+                {
+                   B[row][row] = A[row][row];
+                }
+                for (col = blockCol * 8; col < blockCol * 8 + 8; col++)
+                {
+                    //transpose non diagonal
+                    if (row != col)
+                    {
+                       B[row][col] = A[col][row];
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* ************************************************
+ * PARAMETERS: M row size, N col size, matrix to
+               transpose from, matrix to transpose
+               to.
+ * FUNCTION: Blocks up the matrices based off of 
+             the 61x67 case.
+ * RETURNS: None.
+ ************************************************* */
+void transposeM61(int M, int N, int A[N][M], int B[M][N])
+{
+    int blockRow, blockCol, row, col;
+    //Iterate the blocks in the 61x67 case
+    for (blockRow = 0; blockRow < 8; blockRow++)
+    {
+       for (blockCol = 0; blockCol < 9; blockCol++)
+       {
+           for (col = blockCol * 8; col < blockCol * 8 + 8 && col < 67; col++)
+           {
+               //Operation to transpose the matrix for the corresponding block
+               for (row = blockRow * 8; row < blockRow * 8 + 8 && row < 61; row++)
+               {
+                   B[row][col] = A[col][row];
+               }
+           }
+       }
+   }
+}
+
+/* ************************************************
+ * PARAMETERS: M row size, N col size, matrix to
+               transpose from, matrix to transpose
+               to.
+ * FUNCTION: Blocks up the matrices based off of the
+             64x64 case.
+ * RETURNS: None.
+ ************************************************* */
 void transposeM64(int M, int N, int A[N][M], int B[M][N])
 {
     int blockRow, blockCol, row, col;
     int row1, row2, row3, row4;
+    //Iterate the blocks in the 64x64 case
     for (blockRow = 0; blockRow < 8; blockRow++)
     {
-       for (blockCol = 0; blockCol < 8; blockCol++)
-       {
-           for (col = blockCol * 8; col < blockCol * 8 + 4; col++)
-           {
-               for (row = blockRow * 8; row < blockRow * 8 + 4; row++)
-               {
+        for (blockCol = 0; blockCol < 8; blockCol++)
+        {
+            for (col = blockCol * 8; col < blockCol * 8 + 4; col++)
+            {
+                for (row = blockRow * 8; row < blockRow * 8 + 4; row++)
+                {
                        //for non diagonal
-                   if (row != col)
-                   {
-                       B[row][col] = A[col][row];
-                   }
-               }
-               if (blockRow == blockCol)
-               {
-                   B[col][col] = A[col][col];
-               }
-           }
-           for (col = blockCol * 8 + 4; col < blockCol * 8 + 8; col++)
-           {
-               for (row = blockRow * 8; row < blockRow * 8 + 4; row++)
-               {
-                   if (row != col - 4)
-                   {
-                       B[row][col] = A[col - 4][row + 4];
-                   }
-               }
-               if (blockCol == blockRow)
-               {
-                   B[col - 4][col] = A[col - 4][col];
-               }
-           }
+                    if (row != col)
+                    {
+                        B[row][col] = A[col][row];
+                    }
+                }
+                if (blockRow == blockCol)
+                {
+                    B[col][col] = A[col][col];
+                }
+            }
 
-               //Store 2 rows of B in order to save accesses
-           row = blockRow * 8;
-           col = blockCol * 8 + 4;
-           row1 = B[row][col];
-           row2 = B[row][col + 1];
-           row3 = B[row][col + 2];
-           row4 = B[row][col + 3];
-           for (col = blockCol * 8 + 4; col < blockCol * 8 + 8; col++)
-           {
-               B[row][col] = A[col][row];
-           }
-           row = blockRow * 8 + 4;
-           col = blockCol * 8;
-           B[row][col] = row1;
-           B[row][col + 1] = row2;
-           B[row][col + 2] = row3;
-           B[row][col + 3] = row4;
+            for (col = blockCol * 8 + 4; col < blockCol * 8 + 8; col++)
+            {
+                for (row = blockRow * 8; row < blockRow * 8 + 4; row++)
+                {
+                    if (row != col - 4)
+                    {
+                        B[row][col] = A[col - 4][row + 4];
+                    }
+                }
+                if (blockCol == blockRow)
+                {
+                    B[col - 4][col] = A[col - 4][col];
+                }
+            }
 
-           row = blockRow * 8 + 1;
-           col = blockCol * 8 + 4;
-           row1 = B[row][col];
-           row2 = B[row][col + 1];
-           row3 = B[row][col + 2];
-           row4 = B[row][col + 3];
-           for (col = blockCol * 8 + 4; col < blockCol * 8 + 8; col++)
-           {
+            /*
+                Store 2 rows of B in order to save accesses. Takes advantage
+                of pointers to immitate an array.
+            */
+            row = blockRow * 8;
+            col = blockCol * 8 + 4;
+            row1 = B[row][col];
+            row2 = B[row][col + 1];
+            row3 = B[row][col + 2];
+            row4 = B[row][col + 3];
+            for (col = blockCol * 8 + 4; col < blockCol * 8 + 8; col++)
+            {
+                B[row][col] = A[col][row];
+            }
+            row = blockRow * 8 + 4;
+            col = blockCol * 8;
+            B[row][col] = row1;
+            B[row][col + 1] = row2;
+            B[row][col + 2] = row3;
+            B[row][col + 3] = row4;
+
+            row = blockRow * 8 + 1;
+            col = blockCol * 8 + 4;
+            row1 = B[row][col];
+            row2 = B[row][col + 1];
+            row3 = B[row][col + 2];
+            row4 = B[row][col + 3];
+            for (col = blockCol * 8 + 4; col < blockCol * 8 + 8; col++)
+            {
                B[row][col] = A[col][row];
-           }
+            }
            row = blockRow * 8 + 5;
            col = blockCol * 8;
            B[row][col] = row1;
@@ -130,10 +217,10 @@ void transposeM64(int M, int N, int A[N][M], int B[M][N])
            row2 = B[row][col + 1];
            row3 = B[row][col + 2];
            row4 = B[row][col + 3];
-           for (col = blockCol * 8 + 4; col < blockCol * 8 + 8; col++)
-           {
+            for (col = blockCol * 8 + 4; col < blockCol * 8 + 8; col++)
+            {
                B[row][col] = A[col][row];
-           }
+            }
            row = blockRow * 8 + 6;
            col = blockCol * 8;
            B[row][col] = row1;
@@ -147,10 +234,10 @@ void transposeM64(int M, int N, int A[N][M], int B[M][N])
            row2 = B[row][col + 1];
            row3 = B[row][col + 2];
            row4 = B[row][col + 3];
-           for (col = blockCol * 8 + 4; col < blockCol * 8 + 8; col++)
-           {
+            for (col = blockCol * 8 + 4; col < blockCol * 8 + 8; col++)
+            {
                B[row][col] = A[col][row];
-           }
+            }
            row = blockRow * 8 + 7;
            col = blockCol * 8;
            B[row][col] = row1;
@@ -158,68 +245,22 @@ void transposeM64(int M, int N, int A[N][M], int B[M][N])
            B[row][col + 2] = row3;
            B[row][col + 3] = row4;
 
-           for (row = blockRow * 8 + 4; row < blockRow * 8 + 8; row++)
-           {
-               if (blockCol == blockRow)
-               {
+            for (row = blockRow * 8 + 4; row < blockRow * 8 + 8; row++)
+            {
+                if (blockCol == blockRow)
+                {
                    B[row][row] = A[row][row];
-               }
-               for (col = blockCol * 8 + 4; col < blockCol * 8 + 8; col++)
-               {
-                   if (row != col)
-                   {
+                }
+                for (col = blockCol * 8 + 4; col < blockCol * 8 + 8; col++)
+                {
+                    if (row != col)
+                    {
                        B[row][col] = A[col][row];
-                   }
-               }
-           }
-       }
-   }
-}
-
-void transposeM61(int M, int N, int A[N][M], int B[M][N])
-{
-    int blockRow, blockCol, row, col;
-    for (blockRow = 0; blockRow < 8; blockRow++)
-    {
-       for (blockCol = 0; blockCol < 9; blockCol++)
-       {
-           for (col = blockCol * 8; col < blockCol * 8 + 8 && col < 67; col++)
-           {
-               for (row = blockRow * 8; row < blockRow * 8 + 8 && row < 61; row++)
-               {
-                   B[row][col] = A[col][row];
-               }
-           }
-       }
-   }
-}
-
-void transposeM32(int M, int N, int A[N][M], int B[M][N])
-{
-    int blockRow, blockCol, row, col;
-    for (blockRow = 0; blockRow < 4; blockRow++)
-    {
-        for (blockCol = 0; blockCol < 4; blockCol++)
-        {
-               //to iterate over the blocks
-           for (row = blockRow * 8; row < blockRow * 8 + 8; row++)
-           {
-                   //Handle diagonal
-               if (blockRow == blockCol)
-               {
-                   B[row][row] = A[row][row];
-               }
-               for (col = blockCol * 8; col < blockCol * 8 + 8; col++)
-               {
-                    //transpose non diagonal
-                   if (row != col)
-                   {
-                       B[row][col] = A[col][row];
-                   }
-               }
-           }
-       }
-   }
+                    }
+                }
+            }
+        }
+    }
 }
 
 
